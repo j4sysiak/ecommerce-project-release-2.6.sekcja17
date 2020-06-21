@@ -2,6 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { ProductService } from 'src/app/services/product.service';
 import { Product } from 'src/app/common/product';
 import { ActivatedRoute } from '@angular/router';
+import { timeoutWith } from 'rxjs/operators';
+import { CartItem } from 'src/app/common/cart-item';
+import { CartService } from 'src/app/services/cart.service';
 
 @Component({
   selector: 'app-product-list',
@@ -15,14 +18,15 @@ export class ProductListComponent implements OnInit {
   previousCategoryId: number = 1;
   searchMode: boolean = false;
 
-    // new properties for pagination
-    thePageNumber: number = 1;
-    thePageSize: number = 5;
-    theTotalElements: number = 0;
+  // new properties for pagination
+  thePageNumber: number = 1;
+  thePageSize: number = 5;
+  theTotalElements: number = 0;
 
-    previousKeyword: string = null;
+  previousKeyword: string = null;
 
   constructor(private productService: ProductService,
+              private cartService: CartService,
               private route: ActivatedRoute) { }
 
   ngOnInit() {
@@ -54,15 +58,16 @@ export class ProductListComponent implements OnInit {
     if (this.previousKeyword != theKeyword) {
       this.thePageNumber = 1;
     }
+
     this.previousKeyword = theKeyword;
 
     console.log(`keyword=${theKeyword}, thePageNumber=${this.thePageNumber}`);
 
     // now search for the products using keyword
-    this.productService.searchProductsPaginate(this.thePageNumber-1,
+    this.productService.searchProductsPaginate(this.thePageNumber - 1,
                                                this.thePageSize,
-                                               theKeyword).subscribe(this.processResult());                         
-    
+                                               theKeyword).subscribe(this.processResult());
+                                               
   }
 
   handleListProducts() {
@@ -86,7 +91,6 @@ export class ProductListComponent implements OnInit {
 
     // if we have a different category id than previous
     // then set thePageNumber back to 1
-
     if (this.previousCategoryId != this.currentCategoryId) {
       this.thePageNumber = 1;
     }
@@ -95,27 +99,36 @@ export class ProductListComponent implements OnInit {
 
     console.log(`currentCategoryId=${this.currentCategoryId}, thePageNumber=${this.thePageNumber}`);
 
-
     // now get the products for the given category id
     this.productService.getProductListPaginate(this.thePageNumber - 1,
                                                this.thePageSize,
-                                               this.currentCategoryId).subscribe(this.processResult());
-                                              
-}  
+                                               this.currentCategoryId)
+                                               .subscribe(this.processResult());
+  }
 
-processResult() {
-  return data => {
-    this.products = data._embedded.products;
-    this.thePageNumber = data.page.number + 1;
-    this.thePageSize = data.page.size;
-    this.theTotalElements = data.page.totalElements;
-  };
-}
+  processResult() {
+    return data => {
+      this.products = data._embedded.products;
+      this.thePageNumber = data.page.number + 1;
+      this.thePageSize = data.page.size;
+      this.theTotalElements = data.page.totalElements;
+    };
+  }
 
-updatePageSize(pageSize: number) {
-  this.thePageSize = pageSize;
-  this.thePageNumber = 1;
-  this.listProducts();
-}
-}
+  updatePageSize(pageSize: number) {
+    this.thePageSize = pageSize;
+    this.thePageNumber = 1;
+    this.listProducts();
+  }
 
+  addToCart(theProduct: Product) {
+    
+    console.log(`Adding to cart: ${theProduct.name}, ${theProduct.unitPrice}`);
+
+    // TODO ... do the real work
+    const theCartItem = new CartItem(theProduct);
+
+    this.cartService.addToCart(theCartItem);
+  }
+
+}
